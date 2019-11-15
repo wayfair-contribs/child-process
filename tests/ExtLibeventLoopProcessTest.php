@@ -9,10 +9,10 @@ class ExtLibeventLoopProcessTest extends AbstractProcessTest
 {
     public function createLoop()
     {
-        if (!function_exists('event_base_new')) {
+        if (!\function_exists('event_base_new')) {
             $this->markTestSkipped('ext-libevent is not installed.');
         }
 
-        return class_exists('React\EventLoop\ExtLibeventLoop') ? new ExtLibeventLoop() : new LibEventLoop();
+        return \class_exists('React\EventLoop\ExtLibeventLoop') ? new ExtLibeventLoop() : new LibEventLoop();
     }
 }

@@ -13,7 +13,7 @@ $loop = Factory::create();
 
 $info = new React\Stream\WritableResourceStream(STDERR, $loop);
 $info->write('Pipes data to process STDIN' . PHP_EOL);
-if (extension_loaded('xdebug')) {
+if (\extension_loaded('xdebug')) {
     $info->write('NOTICE: The "xdebug" extension is loaded, this has a major impact on performance.' . PHP_EOL);
 }
 
@@ -22,7 +22,7 @@ $process->start($loop);
 
 // 10000 * 100 KB => 1 GB
 $i = 10000;
-$chunk = str_repeat("\0", 100 * 1000);
+$chunk = \str_repeat("\0", 100 * 1000);
 $write = function () use ($chunk, $process, &$i, &$write) {
     do {
         --$i;

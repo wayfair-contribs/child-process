@@ -14,7 +14,7 @@ $server->on('connection', function (React\Socket\ConnectionInterface $connection
         // $chunk = addcslashes($chunk,"\0..\37!@\177..\377");
 
         // convert default code page 850 to UTF-8 (German Windows in this case)
-        $chunk = iconv('CP850','UTF-8', $chunk);
+        $chunk = \iconv('CP850','UTF-8', $chunk);
 
         echo $chunk;
     });
@@ -27,7 +27,7 @@ $command = 'php -r "echo 1;sleep(1);echo 2;sleep(1);echo 3;"';
 // use stream redirections to consume output of child process in another helper process and forward to socket
 $code = '$s=stream_socket_client($argv[1]);do{fwrite($s,$d=fread(STDIN, 8192));}while(isset($d[0]));';
 $process = new Process(
-    $command . ' | php -r ' . escapeshellarg($code) . ' ' . $server->getAddress(),
+    $command . ' | php -r ' . \escapeshellarg($code) . ' ' . $server->getAddress(),
     null,
     null,
     array()

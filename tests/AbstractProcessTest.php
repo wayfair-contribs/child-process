@@ -104,7 +104,7 @@ abstract class AbstractProcessTest extends TestCase
             $this->markTestSkipped('PHP 7+ only, causes memory overflow on legacy PHP 5');
         }
 
-        $ulimit = exec('ulimit -n 2>&1');
+        $ulimit = \exec('ulimit -n 2>&1');
         if ($ulimit < 1) {
             $this->markTestSkipped('Unable to determine limit of open files (ulimit not available?)');
         }
@@ -115,11 +115,11 @@ abstract class AbstractProcessTest extends TestCase
         $limit = (int)($ulimit * 0.7);
         $fds = array();
         for ($i = 0; $i < $limit; ++$i) {
-            $fds[$i] = fopen('/dev/null', 'r');
+            $fds[$i] = \fopen('/dev/null', 'r');
         }
 
         // try to create child process with another ~700 dummy file handles
-        $new = array_fill(0, $limit, array('file', '/dev/null', 'r'));
+        $new = \array_fill(0, $limit, array('file', '/dev/null', 'r'));
         $process = new Process('ping example.com', null, null, $new);
 
         try {
@@ -138,7 +138,7 @@ abstract class AbstractProcessTest extends TestCase
     {
         if (DIRECTORY_SEPARATOR === '\\') {
             // Windows doesn't have a sleep command and also does not support process pipes
-            $process = new Process($this->getPhpBinary() . ' -r ' . escapeshellarg('sleep(1);'), null, null, array());
+            $process = new Process($this->getPhpBinary() . ' -r ' . \escapeshellarg('sleep(1);'), null, null, array());
         } else {
             $process = new Process('sleep 1');
         }
@@ -203,12 +203,12 @@ abstract class AbstractProcessTest extends TestCase
 
         $loop->run();
 
-        $this->assertEquals('test', rtrim($buffer));
+        $this->assertEquals('test', \rtrim($buffer));
     }
 
     public function testReceivesProcessOutputFromStdoutRedirectedToFile()
     {
-        $tmp = tmpfile();
+        $tmp = \tmpfile();
 
         if (DIRECTORY_SEPARATOR === '\\') {
             $cmd = 'cmd /c echo test';
@@ -222,13 +222,13 @@ abstract class AbstractProcessTest extends TestCase
 
         $loop->run();
 
-        rewind($tmp);
-        $this->assertEquals('test', rtrim(stream_get_contents($tmp)));
+        \rewind($tmp);
+        $this->assertEquals('test', \rtrim(\stream_get_contents($tmp)));
     }
 
     public function testReceivesProcessOutputFromTwoCommandsChainedStdoutRedirectedToFile()
     {
-        $tmp = tmpfile();
+        $tmp = \tmpfile();
 
         if (DIRECTORY_SEPARATOR === '\\') {
             // omit whitespace before "&&" and quotation marks as Windows will actually echo this otherwise
@@ -243,8 +243,8 @@ abstract class AbstractProcessTest extends TestCase
 
         $loop->run();
 
-        rewind($tmp);
-        $this->assertEquals("hello\nworld", str_replace("\r\n", "\n", rtrim(stream_get_contents($tmp))));
+        \rewind($tmp);
+        $this->assertEquals("hello\nworld", \str_replace("\r\n", "\n", \rtrim(\stream_get_contents($tmp))));
     }
 
     public function testReceivesProcessOutputFromStdoutAttachedToSocket()
@@ -254,10 +254,10 @@ abstract class AbstractProcessTest extends TestCase
         }
 
         // create TCP/IP server on random port and create a client connection
-        $server = stream_socket_server('tcp://127.0.0.1:0');
-        $client = stream_socket_client(stream_socket_get_name($server, false));
-        $peer = stream_socket_accept($server, 0);
-        fclose($server);
+        $server = \stream_socket_server('tcp://127.0.0.1:0');
+        $client = \stream_socket_client(\stream_socket_get_name($server, false));
+        $peer = \stream_socket_accept($server, 0);
+        \fclose($server);
 
         $cmd = 'echo test';
 
@@ -266,17 +266,17 @@ abstract class AbstractProcessTest extends TestCase
         // spawn child process with $client socket as STDOUT, close local reference afterwards
         $process = new Process($cmd, null, null, array(1 => $client));
         $process->start($loop);
-        fclose($client);
+        \fclose($client);
 
         $loop->run();
 
-        $this->assertEquals('test', rtrim(stream_get_contents($peer)));
+        $this->assertEquals('test', \rtrim(\stream_get_contents($peer)));
     }
 
     public function testReceivesProcessOutputFromStdoutRedirectedToSocketProcess()
     {
         // create TCP/IP server on random port and wait for client connection
-        $server = stream_socket_server('tcp://127.0.0.1:0');
+        $server = \stream_socket_server('tcp://127.0.0.1:0');
 
         if (DIRECTORY_SEPARATOR === '\\') {
             $cmd = 'cmd /c echo test';
@@ -285,7 +285,7 @@ abstract class AbstractProcessTest extends TestCase
         }
 
         $code = '$s=stream_socket_client($argv[1]);do{$d=fread(STDIN,8192);fwrite($s,$d);}while(!feof(STDIN));fclose($s);';
-        $cmd .= ' | ' . $this->getPhpBinary() . ' -r ' . escapeshellarg($code) . ' ' . escapeshellarg(stream_socket_get_name($server, false));
+        $cmd .= ' | ' . $this->getPhpBinary() . ' -r ' . \escapeshellarg($code) . ' ' . \escapeshellarg(\stream_socket_get_name($server, false));
 
         $loop = $this->createLoop();
 
@@ -293,11 +293,11 @@ abstract class AbstractProcessTest extends TestCase
         $process = new Process($cmd, null, null, array());
         $process->start($loop);
 
-        $peer = stream_socket_accept($server, 10);
+        $peer = \stream_socket_accept($server, 10);
 
         $loop->run();
 
-        $this->assertEquals('test', rtrim(stream_get_contents($peer)));
+        $this->assertEquals('test', \rtrim(\stream_get_contents($peer)));
     }
 
     public function testReceivesProcessStdoutFromDd()
@@ -306,7 +306,7 @@ abstract class AbstractProcessTest extends TestCase
             $this->markTestSkipped('Process pipes not supported on Windows');
         }
 
-        if (!file_exists('/dev/zero')) {
+        if (!\file_exists('/dev/zero')) {
             $this->markTestSkipped('Unable to read from /dev/zero, Windows?');
         }
 
@@ -318,7 +318,7 @@ abstract class AbstractProcessTest extends TestCase
 
         $bytes = 0;
         $process->stdout->on('data', function ($data) use (&$bytes) {
-            $bytes += strlen($data);
+            $bytes += \strlen($data);
         });
 
         $loop->run();
@@ -332,7 +332,7 @@ abstract class AbstractProcessTest extends TestCase
             $this->markTestSkipped('Process pipes not supported on Windows');
         }
 
-        $cmd = $this->getPhpBinary() . ' -r ' . escapeshellarg('echo getmypid();');
+        $cmd = $this->getPhpBinary() . ' -r ' . \escapeshellarg('echo getmypid();');
 
         $loop = $this->createLoop();
         $process = new Process($cmd, '/');
@@ -356,7 +356,7 @@ abstract class AbstractProcessTest extends TestCase
             $this->markTestSkipped('Process pipes not supported on Windows');
         }
 
-        $cmd = 'exec ' . $this->getPhpBinary() . ' -r ' . escapeshellarg('echo getmypid();');
+        $cmd = 'exec ' . $this->getPhpBinary() . ' -r ' . \escapeshellarg('echo getmypid();');
 
         $loop = $this->createLoop();
         $process = new Process($cmd, '/');
@@ -379,7 +379,7 @@ abstract class AbstractProcessTest extends TestCase
             $this->markTestSkipped('Process pipes not supported on Windows');
         }
 
-        $cmd = $this->getPhpBinary() . ' -r ' . escapeshellarg('echo getcwd(), PHP_EOL, count($_SERVER), PHP_EOL;');
+        $cmd = $this->getPhpBinary() . ' -r ' . \escapeshellarg('echo getcwd(), PHP_EOL, count($_SERVER), PHP_EOL;');
 
         $loop = $this->createLoop();
 
@@ -388,19 +388,19 @@ abstract class AbstractProcessTest extends TestCase
 
         $output = '';
         $process->stdout->on('data', function () use (&$output) {
-            $output .= func_get_arg(0);
+            $output .= \func_get_arg(0);
         });
 
         $loop->run();
 
-        list($cwd, $envCount) = explode(PHP_EOL, $output);
+        list($cwd, $envCount) = \explode(PHP_EOL, $output);
 
         /* Child process should inherit the same current working directory and
          * existing environment variables; however, it may be missing a "_"
          * environment variable (i.e. current shell/script) on some platforms.
          */
-        $this->assertSame(getcwd(), $cwd);
-        $this->assertLessThanOrEqual(1, (count($_SERVER) - (integer) $envCount));
+        $this->assertSame(\getcwd(), $cwd);
+        $this->assertLessThanOrEqual(1, (\count($_SERVER) - (integer) $envCount));
     }
 
     public function testProcessWithCwd()
@@ -409,7 +409,7 @@ abstract class AbstractProcessTest extends TestCase
             $this->markTestSkipped('Process pipes not supported on Windows');
         }
 
-        $cmd = $this->getPhpBinary() . ' -r ' . escapeshellarg('echo getcwd(), PHP_EOL;');
+        $cmd = $this->getPhpBinary() . ' -r ' . \escapeshellarg('echo getcwd(), PHP_EOL;');
 
         $loop = $this->createLoop();
 
@@ -418,7 +418,7 @@ abstract class AbstractProcessTest extends TestCase
 
         $output = '';
         $process->stdout->on('data', function () use (&$output) {
-            $output .= func_get_arg(0);
+            $output .= \func_get_arg(0);
         });
 
         $loop->run();
@@ -432,11 +432,11 @@ abstract class AbstractProcessTest extends TestCase
             $this->markTestSkipped('Process pipes not supported on Windows');
         }
 
-        if (getenv('TRAVIS')) {
+        if (\getenv('TRAVIS')) {
             $this->markTestSkipped('Cannot execute PHP processes with custom environments on Travis CI.');
         }
 
-        $cmd = $this->getPhpBinary() . ' -r ' . escapeshellarg('echo getenv("foo"), PHP_EOL;');
+        $cmd = $this->getPhpBinary() . ' -r ' . \escapeshellarg('echo getenv("foo"), PHP_EOL;');
 
         $loop = $this->createLoop();
 
@@ -445,7 +445,7 @@ abstract class AbstractProcessTest extends TestCase
 
         $output = '';
         $process->stdout->on('data', function () use (&$output) {
-            $output .= func_get_arg(0);
+            $output .= \func_get_arg(0);
         });
 
         $loop->run();
@@ -468,8 +468,8 @@ abstract class AbstractProcessTest extends TestCase
 
         $process->on('exit', function () use (&$called, &$exitCode, &$termSignal) {
             $called = true;
-            $exitCode = func_get_arg(0);
-            $termSignal = func_get_arg(1);
+            $exitCode = \func_get_arg(0);
+            $termSignal = \func_get_arg(1);
         });
 
         $process->start($loop);
@@ -496,9 +496,9 @@ abstract class AbstractProcessTest extends TestCase
         $process = new Process('echo hi');
         $process->start($loop, 2);
 
-        $time = microtime(true);
+        $time = \microtime(true);
         $loop->run();
-        $time = microtime(true) - $time;
+        $time = \microtime(true) - $time;
 
         $this->assertLessThan(0.1, $time);
     }
@@ -509,7 +509,7 @@ abstract class AbstractProcessTest extends TestCase
             $this->markTestSkipped('Process pipes not supported on Windows');
         }
 
-        $cmd = 'exec ' . $this->getPhpBinary() . ' -r ' . escapeshellarg('fclose(STDOUT); sleep(1);');
+        $cmd = 'exec ' . $this->getPhpBinary() . ' -r ' . \escapeshellarg('fclose(STDOUT); sleep(1);');
 
         $loop = $this->createLoop();
         $process = new Process($cmd);
@@ -536,7 +536,7 @@ abstract class AbstractProcessTest extends TestCase
             $this->markTestSkipped('Process pipes not supported on Windows');
         }
 
-        $cmd = 'exec ' . $this->getPhpBinary() . ' -r ' . escapeshellarg('fclose(STDIN);fclose(STDOUT);fclose(STDERR);sleep(1);');
+        $cmd = 'exec ' . $this->getPhpBinary() . ' -r ' . \escapeshellarg('fclose(STDIN);fclose(STDOUT);fclose(STDERR);sleep(1);');
 
         $loop = $this->createLoop();
         $process = new Process($cmd);
@@ -572,15 +572,15 @@ abstract class AbstractProcessTest extends TestCase
             $this->markTestSkipped('Process pipes not supported on Windows');
         }
 
-        $cmd = 'exec ' . $this->getPhpBinary() . ' -r ' . escapeshellarg('fclose(STDIN);fclose(STDOUT);fclose(STDERR);usleep(10000);');
+        $cmd = 'exec ' . $this->getPhpBinary() . ' -r ' . \escapeshellarg('fclose(STDIN);fclose(STDOUT);fclose(STDERR);usleep(10000);');
 
         $loop = $this->createLoop();
         $process = new Process($cmd);
         $process->start($loop, 0.001);
 
-        $time = microtime(true);
+        $time = \microtime(true);
         $loop->run();
-        $time = microtime(true) - $time;
+        $time = \microtime(true) - $time;
 
         $this->assertLessThan(0.5, $time);
         $this->assertSame(0, $process->getExitCode());
@@ -598,9 +598,9 @@ abstract class AbstractProcessTest extends TestCase
 
         $process->start($loop, 0.001);
 
-        $time = microtime(true);
+        $time = \microtime(true);
         $loop->run();
-        $time = microtime(true) - $time;
+        $time = \microtime(true) - $time;
 
         $this->assertLessThan(0.1, $time);
         $this->assertSame(0, $process->getExitCode());
@@ -612,7 +612,7 @@ abstract class AbstractProcessTest extends TestCase
             $this->markTestSkipped('Process pipes not supported on Windows');
         }
 
-        $cmd = tempnam(sys_get_temp_dir(), 'react');
+        $cmd = \tempnam(\sys_get_temp_dir(), 'react');
 
         $loop = $this->createLoop();
 
@@ -621,12 +621,12 @@ abstract class AbstractProcessTest extends TestCase
 
         $output = '';
         $process->stderr->on('data', function () use (&$output) {
-            $output .= func_get_arg(0);
+            $output .= \func_get_arg(0);
         });
 
         $loop->run();
 
-        unlink($cmd);
+        \unlink($cmd);
 
         $this->assertNotEmpty($output);
     }
@@ -638,7 +638,7 @@ abstract class AbstractProcessTest extends TestCase
     {
         if (DIRECTORY_SEPARATOR === '\\') {
             // Windows doesn't have a sleep command and also does not support process pipes
-            $process = new Process($this->getPhpBinary() . ' -r ' . escapeshellarg('sleep(1);'), null, null, array());
+            $process = new Process($this->getPhpBinary() . ' -r ' . \escapeshellarg('sleep(1);'), null, null, array());
         } else {
             $process = new Process('sleep 1');
         }
@@ -652,7 +652,7 @@ abstract class AbstractProcessTest extends TestCase
     {
         if (DIRECTORY_SEPARATOR === '\\') {
             // Windows doesn't have a sleep command and also does not support process pipes
-            $process = new Process($this->getPhpBinary() . ' -r ' . escapeshellarg('sleep(1);'), null, null, array());
+            $process = new Process($this->getPhpBinary() . ' -r ' . \escapeshellarg('sleep(1);'), null, null, array());
         } else {
             $process = new Process('sleep 1');
         }
@@ -664,7 +664,7 @@ abstract class AbstractProcessTest extends TestCase
     {
         if (DIRECTORY_SEPARATOR === '\\') {
             // Windows doesn't have a sleep command and also does not support process pipes
-            $process = new Process($this->getPhpBinary() . ' -r ' . escapeshellarg('sleep(10);'), null, null, array());
+            $process = new Process($this->getPhpBinary() . ' -r ' . \escapeshellarg('sleep(10);'), null, null, array());
         } else {
             $process = new Process('sleep 10');
         }
@@ -694,7 +694,7 @@ abstract class AbstractProcessTest extends TestCase
             $this->markTestSkipped('Windows does not report signals via proc_get_status()');
         }
 
-        if (!defined('SIGTERM')) {
+        if (!\defined('SIGTERM')) {
             $this->markTestSkipped('SIGTERM is not defined');
         }
 
@@ -707,8 +707,8 @@ abstract class AbstractProcessTest extends TestCase
 
         $process->on('exit', function () use (&$called, &$exitCode, &$termSignal) {
             $called = true;
-            $exitCode = func_get_arg(0);
-            $termSignal = func_get_arg(1);
+            $exitCode = \func_get_arg(0);
+            $termSignal = \func_get_arg(1);
         });
 
         $process->start($loop);
@@ -732,7 +732,7 @@ abstract class AbstractProcessTest extends TestCase
             $this->markTestSkipped('Windows does not report signals via proc_get_status()');
         }
 
-        if (!defined('SIGSTOP') && !defined('SIGCONT')) {
+        if (!\defined('SIGSTOP') && !\defined('SIGCONT')) {
             $this->markTestSkipped('SIGSTOP and/or SIGCONT is not defined');
         }
 
@@ -745,8 +745,8 @@ abstract class AbstractProcessTest extends TestCase
 
         $process->on('exit', function () use (&$called, &$exitCode, &$termSignal) {
             $called = true;
-            $exitCode = func_get_arg(0);
-            $termSignal = func_get_arg(1);
+            $exitCode = \func_get_arg(0);
+            $termSignal = \func_get_arg(1);
         });
 
         $that = $this;
@@ -824,7 +824,7 @@ abstract class AbstractProcessTest extends TestCase
         });
         $loop->run();
 
-        sleep(1); // comment this line out and it works fine
+        \sleep(1); // comment this line out and it works fine
 
         $loop->run();
     }
@@ -840,13 +840,13 @@ abstract class AbstractProcessTest extends TestCase
      */
     public function assertSoon(\Closure $callback, $timeout = 20000, $interval = 200)
     {
-        $start = microtime(true);
+        $start = \microtime(true);
         $timeout /= 1000; // convert to seconds
         $interval *= 1000; // convert to microseconds
 
         while (1) {
             try {
-                call_user_func($callback);
+                \call_user_func($callback);
                 return;
             } catch (ExpectationFailedException $e) {
                 // namespaced PHPUnit exception
@@ -854,11 +854,11 @@ abstract class AbstractProcessTest extends TestCase
                 // legacy PHPUnit exception
             }
 
-            if ((microtime(true) - $start) > $timeout) {
+            if ((\microtime(true) - $start) > $timeout) {
                 throw $e;
             }
 
-            usleep($interval);
+            \usleep($interval);
         }
     }
 

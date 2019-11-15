@@ -13,7 +13,7 @@ $process->start($loop);
 
 // report when process exits
 $process->on('exit', function ($exit, $term) {
-    var_dump($exit, $term);
+    \var_dump($exit, $term);
 });
 
 // forcefully terminate process after 2s
